@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../Components/AdminSidebar";
-import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { auth, db } from "../firebase";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
@@ -154,7 +153,7 @@ export default function AdminDashboard() {
       <AdminSidebar />
 
       <div className="md:ml-64 flex flex-col min-h-screen">
-        <NavBar />
+       
 
         <main className="flex-1 px-6 py-10 max-w-[1600px] mx-auto w-full">
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
