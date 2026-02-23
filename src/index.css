@@ -1,0 +1,32 @@
+@import "tailwindcss";
+/* index.css */
+
+/* general app styles already here ... */
+
+/* PRINT STYLES */
+@media print {
+  body {
+    background: white;
+  }
+
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the slip we print */
+  .slip-root,
+  .slip-root * {
+    visibility: visible;
+  }
+
+  /* Center slip on page */
+  .slip-root {
+    margin: 0 auto;
+  }
+
+  /* Optional: remove page margins for more compact slip */
+  @page {
+    margin: 5mm;
+  }
+}
