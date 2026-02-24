@@ -8,13 +8,8 @@ import {
   Plus,
   Image as ImageIcon,
   Tag,
-  Type,
-  DollarSign,
-  AlignLeft,
-  Layers,
-  X,
-  CheckCircle2,
   AlertCircle,
+  CheckCircle2,
   Eye,
 } from "lucide-react";
 
@@ -27,6 +22,7 @@ export default function AddShoe() {
   // Form state
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [stock, setStock] = useState(""); // new
   const [category, setCategory] = useState("bespoke");
   const [description, setDescription] = useState("");
   const [tag, setTag] = useState("");
@@ -75,9 +71,23 @@ export default function AddShoe() {
     const images = imageInputs.map((url) => url.trim()).filter(Boolean);
     const sizes = sizesText.split(",").map((s) => s.trim()).filter(Boolean);
     const colors = colorsText.split(",").map((c) => c.trim()).filter(Boolean);
+    const numericPrice = Number(price.toString().replace(/[^0-9.]/g, ""));
+    const numericStock = Number(stock);
 
-    if (!name || !price || images.length === 0) {
-      setError("Product name, price, and at least one image are required.");
+    if (!name || !price || !stock || images.length === 0) {
+      setError(
+        "Product name, price, stock, and at least one image are required."
+      );
+      return;
+    }
+
+    if (Number.isNaN(numericPrice) || numericPrice <= 0) {
+      setError("Please enter a valid numeric price.");
+      return;
+    }
+
+    if (!Number.isInteger(numericStock) || numericStock < 0) {
+      setError("Stock must be a non‑negative integer.");
       return;
     }
 
@@ -85,7 +95,8 @@ export default function AddShoe() {
       setSaving(true);
       await addDoc(collection(db, "shoes"), {
         name,
-        price,
+        price: numericPrice,
+        stock: numericStock, // stored as number
         category,
         description,
         tag,
@@ -96,21 +107,30 @@ export default function AddShoe() {
       });
 
       setSuccess(true);
-      setName(""); setPrice(""); setCategory("bespoke"); setDescription("");
-      setTag(""); setImageInputs([""]); setSizesText(""); setColorsText("");
+      setName("");
+      setPrice("");
+      setStock("");
+      setCategory("bespoke");
+      setDescription("");
+      setTag("");
+      setImageInputs([""]);
+      setSizesText("");
+      setColorsText("");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
+      console.error("Add shoe error:", err);
       setError("Failed to save product.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loadingUser) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loadingUser)
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-red-500/30">
@@ -122,36 +142,44 @@ export default function AddShoe() {
           <header className="mb-12">
             <div className="flex items-center gap-2 mb-2">
               <span className="h-[1px] w-8 bg-red-600" />
-              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-red-500">New Arrival</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-red-500">
+                New Arrival
+              </p>
             </div>
-            <h1 className="text-3xl md:text-4xl font-serif italic">Curate Inventory</h1>
+            <h1 className="text-3xl md:text-4xl font-serif italic">
+              Curate Inventory
+            </h1>
           </header>
 
           {!isAdmin ? (
             <div className="p-12 border border-white/5 bg-white/[0.02] rounded-[40px] text-center">
               <AlertCircle className="mx-auto text-red-500 mb-4" size={32} />
-              <p className="text-neutral-500 font-serif italic text-sm">Administrative privileges required.</p>
+              <p className="text-neutral-500 font-serif italic text-sm">
+                Administrative privileges required.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-              
               {/* Left Column: The Form */}
-              <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-6">
+              <form
+                onSubmit={handleSubmit}
+                className="lg:col-span-7 space-y-6"
+              >
                 <div className="bg-white/[0.02] border border-white/5 p-6 md:p-8 rounded-[32px] backdrop-blur-sm space-y-8">
-                  
                   {success && (
-                    <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-400 text-xs animate-in slide-in-from-top duration-300">
+                    <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-400 text-xs">
                       <CheckCircle2 size={16} /> Product published successfully.
                     </div>
                   )}
 
                   {error && (
-                    <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs animate-pulse">
+                    <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs">
                       <AlertCircle size={16} /> {error}
                     </div>
                   )}
 
                   <div className="space-y-6">
+                    {/* Essentials + stock */}
                     <InputGroup label="Essential Details">
                       <div className="grid grid-cols-1 gap-4">
                         <input
@@ -164,21 +192,29 @@ export default function AddShoe() {
                         <div className="grid grid-cols-2 gap-4">
                           <input
                             type="text"
-                            placeholder="Price (e.g. LKR 18,500)"
+                            placeholder="Price (e.g. 18500)"
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                             className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-red-500/40 focus:outline-none"
                           />
-                          <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-red-500/40 focus:outline-none appearance-none text-neutral-400"
-                          >
-                            <option value="bespoke">Bespoke Classics</option>
-                            <option value="medical">Medical & Ortho</option>
-                            <option value="uncommon">Uncommon Styles</option>
-                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Stock (e.g. 10)"
+                            value={stock}
+                            onChange={(e) => setStock(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-red-500/40 focus:outline-none"
+                          />
                         </div>
+                        <select
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-red-500/40 focus:outline-none appearance-none text-neutral-400"
+                        >
+                          <option value="bespoke">Bespoke Classics</option>
+                          <option value="medical">Medical & Ortho</option>
+                          <option value="uncommon">Uncommon Styles</option>
+                        </select>
                       </div>
                     </InputGroup>
 
@@ -217,10 +253,14 @@ export default function AddShoe() {
                       />
                     </InputGroup>
 
-                    <InputGroup 
-                      label="Media Links" 
+                    <InputGroup
+                      label="Media Links"
                       action={
-                        <button type="button" onClick={handleAddImageField} className="text-[10px] font-bold text-red-500 flex items-center gap-1 hover:text-red-400 transition-colors">
+                        <button
+                          type="button"
+                          onClick={handleAddImageField}
+                          className="text-[10px] font-bold text-red-500 flex items-center gap-1 hover:text-red-400 transition-colors"
+                        >
                           <Plus size={12} /> ADD IMAGE
                         </button>
                       }
@@ -231,7 +271,9 @@ export default function AddShoe() {
                             <input
                               type="text"
                               value={val}
-                              onChange={(e) => handleImageChange(idx, e.target.value)}
+                              onChange={(e) =>
+                                handleImageChange(idx, e.target.value)
+                              }
                               placeholder="Direct image URL"
                               className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-xs focus:border-red-500/40 focus:outline-none pr-10"
                             />
@@ -241,7 +283,9 @@ export default function AddShoe() {
                                 onClick={() => removeImageField(idx)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-red-500 transition-colors"
                               >
-                                <X size={14} />
+                                <Plus size={0} className="hidden" />
+                                {/* using X but imported above */}
+                                <span className="text-xs">✕</span>
                               </button>
                             )}
                           </div>
@@ -264,18 +308,23 @@ export default function AddShoe() {
               <div className="lg:col-span-5 lg:sticky lg:top-12">
                 <div className="flex items-center gap-2 mb-6">
                   <Eye size={14} className="text-neutral-500" />
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Live Preview</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                    Live Preview
+                  </h3>
                 </div>
 
                 <div className="max-w-[300px] mx-auto lg:mx-0">
                   <div className="bg-white/[0.03] border border-white/5 rounded-[40px] overflow-hidden group">
                     <div className="aspect-[4/5] bg-neutral-900 overflow-hidden relative">
                       {imageInputs[0] ? (
-                        <img 
-                          src={imageInputs[0]} 
-                          alt="Preview" 
+                        <img
+                          src={imageInputs[0]}
+                          alt="Preview"
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          onError={(e) => e.target.src = "https://placehold.co/400x500/111/333?text=Preview"}
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "https://placehold.co/400x500/111/333?text=Preview";
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-neutral-700">
@@ -292,8 +341,11 @@ export default function AddShoe() {
                       <h4 className="text-lg font-medium mb-1 line-clamp-1 truncate">
                         {name || "Product Title"}
                       </h4>
-                      <p className="text-red-500 font-mono text-sm mb-3">
-                        {price || "LKR 0.00"}
+                      <p className="text-red-500 font-mono text-sm mb-1">
+                        {price ? `LKR ${price}` : "LKR 0.00"}
+                      </p>
+                      <p className="text-xs text-neutral-400 mb-3">
+                        Stock: {stock || 0}
                       </p>
                       <div className="flex items-center gap-2 opacity-40">
                         <Tag size={10} />
@@ -303,15 +355,16 @@ export default function AddShoe() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-8 p-6 bg-white/[0.02] border border-dashed border-white/10 rounded-[32px]">
                     <p className="text-[10px] text-neutral-500 leading-relaxed italic">
-                      "Make sure image URLs are direct (ending in .jpg, .png). High-resolution portraits work best for the archive display."
+                      "Make sure image URLs are direct (ending in .jpg, .png).
+                      High‑resolution portraits work best for the archive
+                      display."
                     </p>
                   </div>
                 </div>
               </div>
-
             </div>
           )}
         </div>
@@ -326,7 +379,9 @@ function InputGroup({ label, children, action }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-500">{label}</h3>
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-500">
+          {label}
+        </h3>
         {action}
       </div>
       {children}

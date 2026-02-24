@@ -4,7 +4,15 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { db } from "../firebase";
-import { collection, getDocs, orderBy, query, addDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  addDoc,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 const categories = [
@@ -33,10 +41,7 @@ export default function Shop() {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const q = query(
-          collection(db, "shoes"),
-          orderBy("createdAt", "desc")
-        );
+        const q = query(collection(db, "shoes"), orderBy("createdAt", "desc"));
         const snap = await getDocs(q);
         const list = snap.docs.map((docSnap) => ({
           id: docSnap.id,
@@ -61,6 +66,12 @@ export default function Shop() {
   const openVariantModal = (product) => {
     if (!currentUser) {
       navigate("/signin");
+      return;
+    }
+
+    const stock = Number(product.stock ?? 0);
+    if (!Number.isFinite(stock) || stock <= 0) {
+      alert("This product is currently out of stock.");
       return;
     }
 
@@ -95,6 +106,23 @@ export default function Shop() {
 
     try {
       setAdding(true);
+
+      // Re‑check stock from Firestore to avoid stale UI
+      const shoeRef = doc(db, "shoes", selectedProduct.id);
+      const shoeSnap = await getDoc(shoeRef);
+      if (!shoeSnap.exists()) {
+        alert("This product is no longer available.");
+        setAdding(false);
+        return;
+      }
+      const data = shoeSnap.data();
+      const currentStock = Number(data.stock ?? 0);
+      if (!Number.isFinite(currentStock) || currentStock <= 0) {
+        alert("This product is currently out of stock.");
+        setAdding(false);
+        return;
+      }
+
       const cartRef = collection(db, "carts", currentUser.uid, "items");
       await addDoc(cartRef, {
         shoeId: selectedProduct.id,
@@ -103,8 +131,10 @@ export default function Shop() {
         image: selectedProduct.images?.[0] || "",
         size: selectedSize,
         color: selectedColor,
+        quantity: 1,
         createdAt: new Date(),
       });
+
       setCartCount((prev) => prev + 1);
       alert("Product added to cart");
       closeVariantModal();
@@ -157,92 +187,111 @@ export default function Shop() {
       {/* PRODUCT GRID */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-10">
         {loadingProducts && (
-          <p className="text-neutral-400 mb-4 text-xs">
-            Loading products...
-          </p>
+          <p className="text-neutral-400 mb-4 text-xs">Loading products...</p>
         )}
-        {error && (
-          <p className="text-red-400 mb-4 text-xs">{error}</p>
-        )}
+        {error && <p className="text-red-400 mb-4 text-xs">{error}</p>}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="group relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-600/40 hover:-translate-y-1 shadow-xl"
-            >
-              {/* Image Container */}
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <img
-                  src={product.images?.[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+          {filteredProducts.map((product) => {
+            const stock = Number(product.stock ?? 0);
+            const outOfStock = !Number.isFinite(stock) || stock <= 0;
 
-                {product.tag && (
-                  <div className="absolute top-2 left-2">
-                    <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-0.5 tracking-tight rounded-sm shadow-lg">
-                      {product.tag}
+            return (
+              <div
+                key={product.id}
+                className="group relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-600/40 hover:-translate-y-1 shadow-xl"
+              >
+                {/* Image Container */}
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <img
+                    src={product.images?.[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+
+                  {product.tag && (
+                    <div className="absolute top-2 left-2">
+                      <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-0.5 tracking-tight rounded-sm shadow-lg">
+                        {product.tag}
+                      </span>
+                    </div>
+                  )}
+
+                  {outOfStock && (
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-neutral-900/90 text-yellow-300 text-[8px] font-black uppercase px-2 py-0.5 tracking-tight rounded-sm border border-yellow-400/60">
+                        Out of Stock
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Hover actions */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2 p-3">
+                    <button
+                      onClick={() => !outOfStock && openVariantModal(product)}
+                      disabled={outOfStock}
+                      className={`w-full py-2 rounded-full text-[9px] font-black uppercase tracking-[0.16em] transition-colors transform translate-y-3 group-hover:translate-y-0 duration-300 ${
+                        outOfStock
+                          ? "bg-neutral-700 text-neutral-300 cursor-not-allowed"
+                          : "bg-red-600 text-white hover:bg-red-700"
+                      }`}
+                    >
+                      {outOfStock ? "Out of Stock" : "Quick Add"}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/shoes/${product.id}`)}
+                      className="w-full bg-white text-black py-2 rounded-full text-[9px] font-black uppercase tracking-[0.16em] hover:bg-neutral-200 transition-colors transform translate-y-3 group-hover:translate-y-0 duration-300 delay-75"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+
+                {/* Product Info */}
+                <div className="p-3 sm:p-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-[8px] uppercase tracking-[0.2em] text-red-500 font-black line-clamp-1">
+                      {product.category}
+                    </p>
+                    <span className="text-[11px] font-mono text-white">
+                      {product.price}
                     </span>
                   </div>
-                )}
+                  <h3 className="text-[12px] sm:text-[13px] font-medium text-neutral-200 group-hover:text-white transition-colors line-clamp-2 min-h-[32px]">
+                    {product.name}
+                  </h3>
 
-                {/* Hover actions */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2 p-3">
+                  {/* Static Add to Cart for mobile */}
                   <button
-                    onClick={() => openVariantModal(product)}
-                    className="w-full bg-red-600 text-white py-2 rounded-full text-[9px] font-black uppercase tracking-[0.16em] hover:bg-red-700 transition-colors transform translate-y-3 group-hover:translate-y-0 duration-300"
+                    onClick={() => !outOfStock && openVariantModal(product)}
+                    disabled={outOfStock}
+                    className={`mt-3 flex w-full items-center justify-center gap-1 border border-white/10 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.18em] transition-all lg:hidden ${
+                      outOfStock
+                        ? "bg-neutral-800 text-neutral-400 cursor-not-allowed"
+                        : "hover:bg-red-600 hover:border-red-600"
+                    }`}
                   >
-                    Quick Add
-                  </button>
-                  <button
-                    onClick={() => navigate(`/shoes/${product.id}`)}
-                    className="w-full bg-white text-black py-2 rounded-full text-[9px] font-black uppercase tracking-[0.16em] hover:bg-neutral-200 transition-colors transform translate-y-3 group-hover:translate-y-0 duration-300 delay-75"
-                  >
-                    View Details
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="9" cy="21" r="1" />
+                      <circle cx="20" cy="21" r="1" />
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                    {outOfStock ? "Out of Stock" : "Add to Cart"}
                   </button>
                 </div>
               </div>
-
-              {/* Product Info */}
-              <div className="p-3 sm:p-4">
-                <div className="flex justify-between items-start mb-1">
-                  <p className="text-[8px] uppercase tracking-[0.2em] text-red-500 font-black line-clamp-1">
-                    {product.category}
-                  </p>
-                  <span className="text-[11px] font-mono text-white">
-                    {product.price}
-                  </span>
-                </div>
-                <h3 className="text-[12px] sm:text-[13px] font-medium text-neutral-200 group-hover:text-white transition-colors line-clamp-2 min-h-[32px]">
-                  {product.name}
-                </h3>
-
-                {/* Static Add to Cart for mobile */}
-                <button
-                  onClick={() => openVariantModal(product)}
-                  className="mt-3 flex w-full items-center justify-center gap-1 border border-white/10 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.18em] hover:bg-red-600 hover:border-red-600 transition-all lg:hidden"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                  </svg>
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* CALLOUT */}
@@ -254,9 +303,9 @@ export default function Shop() {
                 Uncompromising Quality
               </h2>
               <p className="text-neutral-400 text-[13px] leading-relaxed mb-3">
-                Can&apos;t find your exact style? Whether it&apos;s a specialized
-                medical build or a custom artisan design, we craft shoes that
-                respect the unique shape of your feet.
+                Can&apos;t find your exact style? Whether it&apos;s a
+                specialized medical build or a custom artisan design, we craft
+                shoes that respect the unique shape of your feet.
               </p>
               <p className="text-red-500 text-[9px] font-black uppercase tracking-[0.2em]">
                 Visit Us at 197, Main Street, Kegalle
@@ -312,10 +361,12 @@ export default function Shop() {
                 <p className="mt-2 text-sm font-mono text-white">
                   {selectedProduct.price}
                 </p>
+                <p className="mt-1 text-[11px] text-neutral-400">
+                  Stock: {Number(selectedProduct.stock ?? 0)}
+                </p>
               </div>
             </div>
 
-            {/* Sizes */}
             {Array.isArray(selectedProduct.sizes) &&
               selectedProduct.sizes.length > 0 && (
                 <div className="mb-4">
@@ -341,7 +392,6 @@ export default function Shop() {
                 </div>
               )}
 
-            {/* Colors */}
             {Array.isArray(selectedProduct.colors) &&
               selectedProduct.colors.length > 0 && (
                 <div className="mb-4">

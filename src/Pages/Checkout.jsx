@@ -6,7 +6,12 @@ import Footer from "../Components/Footer";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  serverTimestamp,
+  doc,
+  runTransaction,
+} from "firebase/firestore";
 
 export default function Checkout() {
   const { items, clearCart, loadingCart } = useCart();
@@ -21,7 +26,6 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect logic in effect to avoid navigation during render
   useEffect(() => {
     if (!loadingCart) {
       if (!currentUser) {
@@ -84,21 +88,62 @@ export default function Checkout() {
         paymentMethod,
       };
 
-      console.log("Creating order with payload:", payload);
+      await runTransaction(db, async (tx) => {
+        // 1. READS: collect all stock checks first
+        const stockUpdates = [];
 
-      await addDoc(collection(db, "orders"), payload);
+        for (const item of orderItems) {
+          if (!item.shoeId) continue;
 
-      clearCart();
+          const shoeRef = doc(db, "shoes", item.shoeId);
+          const shoeSnap = await tx.get(shoeRef); // read only
+
+          if (!shoeSnap.exists()) {
+            throw new Error(
+              `Product "${item.name}" is no longer available in the store.`
+            );
+          }
+
+          const data = shoeSnap.data();
+          const currentStock = Number(data.stock || 0);
+          const qty = Number(item.quantity || 1);
+
+          if (currentStock < qty) {
+            throw new Error(
+              `Product "${item.name}" is out of stock or does not have enough quantity.`
+            );
+          }
+
+          stockUpdates.push({
+            ref: shoeRef,
+            newStock: currentStock - qty,
+          });
+        }
+
+        // 2. WRITES: apply stock updates
+        for (const upd of stockUpdates) {
+          tx.update(upd.ref, { stock: upd.newStock });
+        }
+
+        // 3. WRITES: create order document with auto ID
+        const ordersRef = collection(db, "orders");
+        const orderRef = doc(ordersRef);
+        tx.set(orderRef, payload);
+      });
+
+      await clearCart();
       alert("Order placed successfully!");
       navigate("/");
     } catch (err) {
       console.error("Order create error:", err);
-      alert("Failed to place order. Please try again.");
+      alert(
+        err?.message ||
+          "Failed to place order. Please verify stock and try again."
+      );
       setSubmitting(false);
     }
   };
 
-  // While redirects resolve, avoid flashing the form
   if (!currentUser || loadingCart || !items) {
     return (
       <div className="min-h-screen bg-[#050505] text-white">
@@ -201,7 +246,7 @@ export default function Checkout() {
                     type="tel"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-[#111] border border:white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-600"
+                    className="w-full bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-600"
                     placeholder="Optional"
                   />
                 </div>
@@ -244,7 +289,7 @@ export default function Checkout() {
           <div className="pt-4 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-neutral-400">
               Total Payable:{" "}
-              <span className="font-bold text:white">
+              <span className="font-bold text-white">
                 Rs. {totalAmount.toLocaleString("en-LK")}
               </span>
             </div>

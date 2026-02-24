@@ -89,6 +89,9 @@ export default function ShoeDetails() {
   const sizes = Array.isArray(shoe.sizes) ? shoe.sizes : [];
   const colors = Array.isArray(shoe.colors) ? shoe.colors : [];
 
+  const stock = Number(shoe.stock ?? 0);
+  const outOfStock = !Number.isFinite(stock) || stock <= 0;
+
   const handleAddToCart = async () => {
     if (!currentUser) {
       navigate("/signin");
@@ -98,15 +101,14 @@ export default function ShoeDetails() {
       alert("Please select both size and color.");
       return;
     }
+    if (outOfStock) {
+      alert("This product is currently out of stock.");
+      return;
+    }
 
     try {
       setAdding(true);
-      const cartRef = collection(
-        db,
-        "carts",
-        currentUser.uid,
-        "items"
-      );
+      const cartRef = collection(db, "carts", currentUser.uid, "items");
       await addDoc(cartRef, {
         shoeId: shoe.id,
         name: shoe.name,
@@ -114,6 +116,7 @@ export default function ShoeDetails() {
         image: shoe.images?.[0] || "",
         size: selectedSize,
         color: selectedColor,
+        quantity: 1,
         createdAt: new Date(),
       });
       alert("Product added to cart");
@@ -140,7 +143,7 @@ export default function ShoeDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Images gallery */}
           <div className="space-y-4">
-            <div className="aspect-[4/5] overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0A]">
+            <div className="aspect-[4/5] overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0A] relative">
               {mainImageSrc ? (
                 <img
                   src={mainImageSrc}
@@ -150,6 +153,13 @@ export default function ShoeDetails() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-600 text-xs">
                   No image
+                </div>
+              )}
+              {outOfStock && (
+                <div className="absolute top-3 left-3">
+                  <span className="bg-neutral-900/90 text-yellow-300 text-[9px] font-black uppercase px-3 py-1 tracking-[0.2em] rounded-full border border-yellow-400/70">
+                    Out of Stock
+                  </span>
                 </div>
               )}
             </div>
@@ -194,6 +204,9 @@ export default function ShoeDetails() {
               )}
               <p className="mt-4 text-lg font-mono text-white">
                 {shoe.price}
+              </p>
+              <p className="mt-1 text-[11px] text-neutral-400">
+                Stock: {outOfStock ? 0 : stock}
               </p>
 
               {shoe.description && (
@@ -253,11 +266,15 @@ export default function ShoeDetails() {
 
             <div className="mt-10 space-y-3">
               <button
-                className="w-full rounded-full bg-red-600 py-4 text-xs font-black uppercase tracking-[0.3em] text-white hover:bg-red-700 transition-all disabled:bg-red-500/60"
+                className="w-full rounded-full bg-red-600 py-4 text-xs font-black uppercase tracking-[0.3em] text-white hover:bg-red-700 transition-all disabled:bg-neutral-700 disabled:text-neutral-400"
                 onClick={handleAddToCart}
-                disabled={adding}
+                disabled={adding || outOfStock}
               >
-                {adding ? "Adding..." : "Add to Cart"}
+                {outOfStock
+                  ? "Out of Stock"
+                  : adding
+                  ? "Adding..."
+                  : "Add to Cart"}
               </button>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em]">
                 Handcrafted in Kegalle • Precision Fit • Royal Comfort
