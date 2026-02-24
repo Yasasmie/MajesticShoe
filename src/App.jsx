@@ -16,6 +16,7 @@ import { AuthProvider } from "./context/AuthContext";
 import AdminDashboard from "./Admin/AdminDashboard";
 import AllShoes from "./Admin/AllShoes";
 import Orders from "./Admin/Orders";
+import Checkout from "./Pages/Checkout";
 
 function App() {
   return (
@@ -34,8 +35,8 @@ function App() {
         <Route path="/admin/add-shoe" element={<AddShoe />} />
         <Route path="/admin/shoes" element={<AllShoes />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
         <Route path="/admin/orders" element={<Orders />} />
-        
       </Routes>
     </AuthProvider>
   );

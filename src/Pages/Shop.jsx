@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { db } from "../firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, addDoc } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext";
 
 const categories = [
   { id: "all", name: "All Collections" },
@@ -19,12 +20,15 @@ export default function Shop() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
-  const handleAddToCart = (productName) => {
-    setCartCount((prev) => prev + 1);
-    console.log(`${productName} added to cart`);
-  };
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     async function loadProducts() {
@@ -34,9 +38,9 @@ export default function Shop() {
           orderBy("createdAt", "desc")
         );
         const snap = await getDocs(q);
-        const list = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
+        const list = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
         }));
         setProducts(list);
       } catch (err) {
@@ -53,6 +57,63 @@ export default function Shop() {
     activeCategory === "all"
       ? products
       : products.filter((p) => p.category === activeCategory);
+
+  const openVariantModal = (product) => {
+    if (!currentUser) {
+      navigate("/signin");
+      return;
+    }
+
+    const sizesArray = Array.isArray(product.sizes) ? product.sizes : [];
+    const colorsArray = Array.isArray(product.colors) ? product.colors : [];
+
+    setSelectedProduct(product);
+    setSelectedSize(sizesArray[0] || "");
+    setSelectedColor(colorsArray[0] || "");
+    setShowVariantModal(true);
+  };
+
+  const closeVariantModal = () => {
+    setShowVariantModal(false);
+    setSelectedProduct(null);
+    setSelectedSize("");
+    setSelectedColor("");
+    setAdding(false);
+  };
+
+  const handleConfirmAddToCart = async () => {
+    if (!currentUser) {
+      navigate("/signin");
+      return;
+    }
+    if (!selectedProduct) return;
+
+    if (!selectedSize || !selectedColor) {
+      alert("Please select both size and color.");
+      return;
+    }
+
+    try {
+      setAdding(true);
+      const cartRef = collection(db, "carts", currentUser.uid, "items");
+      await addDoc(cartRef, {
+        shoeId: selectedProduct.id,
+        name: selectedProduct.name,
+        price: selectedProduct.price,
+        image: selectedProduct.images?.[0] || "",
+        size: selectedSize,
+        color: selectedColor,
+        createdAt: new Date(),
+      });
+      setCartCount((prev) => prev + 1);
+      alert("Product added to cart");
+      closeVariantModal();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add to cart");
+      setAdding(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -96,20 +157,21 @@ export default function Shop() {
       {/* PRODUCT GRID */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-10">
         {loadingProducts && (
-          <p className="text-neutral-400 mb-4 text-xs">Loading products...</p>
+          <p className="text-neutral-400 mb-4 text-xs">
+            Loading products...
+          </p>
         )}
         {error && (
           <p className="text-red-400 mb-4 text-xs">{error}</p>
         )}
 
-        {/* compact grid: more columns, less gap, smaller cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
           {filteredProducts.map((product) => (
             <div
               key={product.id}
               className="group relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-600/40 hover:-translate-y-1 shadow-xl"
             >
-              {/* Image Container – shorter aspect for compact card */}
+              {/* Image Container */}
               <div className="relative aspect-[3/4] overflow-hidden">
                 <img
                   src={product.images?.[0]}
@@ -125,10 +187,10 @@ export default function Shop() {
                   </div>
                 )}
 
-                {/* Hover actions – compact buttons */}
+                {/* Hover actions */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2 p-3">
                   <button
-                    onClick={() => handleAddToCart(product.name)}
+                    onClick={() => openVariantModal(product)}
                     className="w-full bg-red-600 text-white py-2 rounded-full text-[9px] font-black uppercase tracking-[0.16em] hover:bg-red-700 transition-colors transform translate-y-3 group-hover:translate-y-0 duration-300"
                   >
                     Quick Add
@@ -142,7 +204,7 @@ export default function Shop() {
                 </div>
               </div>
 
-              {/* Product Info – tighter spacing, smaller text */}
+              {/* Product Info */}
               <div className="p-3 sm:p-4">
                 <div className="flex justify-between items-start mb-1">
                   <p className="text-[8px] uppercase tracking-[0.2em] text-red-500 font-black line-clamp-1">
@@ -156,9 +218,9 @@ export default function Shop() {
                   {product.name}
                 </h3>
 
-                {/* Static Add to Cart for mobile – smaller button */}
+                {/* Static Add to Cart for mobile */}
                 <button
-                  onClick={() => handleAddToCart(product.name)}
+                  onClick={() => openVariantModal(product)}
                   className="mt-3 flex w-full items-center justify-center gap-1 border border-white/10 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.18em] hover:bg-red-600 hover:border-red-600 transition-all lg:hidden"
                 >
                   <svg
@@ -192,9 +254,9 @@ export default function Shop() {
                 Uncompromising Quality
               </h2>
               <p className="text-neutral-400 text-[13px] leading-relaxed mb-3">
-                Can't find your exact style? Whether it's a specialized medical
-                build or a custom artisan design, we craft shoes that respect
-                the unique shape of your feet.
+                Can&apos;t find your exact style? Whether it&apos;s a specialized
+                medical build or a custom artisan design, we craft shoes that
+                respect the unique shape of your feet.
               </p>
               <p className="text-red-500 text-[9px] font-black uppercase tracking-[0.2em]">
                 Visit Us at 197, Main Street, Kegalle
@@ -206,6 +268,125 @@ export default function Shop() {
           </div>
         </div>
       </main>
+
+      {/* Variant selection modal */}
+      {showVariantModal && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0A0A0A] border border-white/10 p-6 shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.18em] text-red-500 font-black">
+                  {selectedProduct.category}
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-white">
+                  {selectedProduct.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeVariantModal}
+                className="text-neutral-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex gap-4 mb-4">
+              <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/10 bg-[#050505]">
+                {selectedProduct.images?.[0] ? (
+                  <img
+                    src={selectedProduct.images[0]}
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-600">
+                    No image
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-[11px] text-neutral-400">
+                  Handcrafted in Kegalle • Precision Fit • Royal Comfort
+                </p>
+                <p className="mt-2 text-sm font-mono text-white">
+                  {selectedProduct.price}
+                </p>
+              </div>
+            </div>
+
+            {/* Sizes */}
+            {Array.isArray(selectedProduct.sizes) &&
+              selectedProduct.sizes.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 mb-2 font-bold">
+                    Choose Size
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProduct.sizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] border ${
+                          selectedSize === size
+                            ? "bg-red-600 border-red-600 text-white"
+                            : "bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Colors */}
+            {Array.isArray(selectedProduct.colors) &&
+              selectedProduct.colors.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 mb-2 font-bold">
+                    Choose Color
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProduct.colors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] border ${
+                          selectedColor === color
+                            ? "bg-red-600 border-red-600 text-white"
+                            : "bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleConfirmAddToCart}
+                disabled={adding}
+                className="flex-1 rounded-full bg-red-600 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-white hover:bg-red-700 transition-all disabled:bg-red-500/60"
+              >
+                {adding ? "Adding..." : "Add to Cart"}
+              </button>
+              <button
+                type="button"
+                onClick={closeVariantModal}
+                className="flex-1 rounded-full border border-white/15 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-neutral-200 hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

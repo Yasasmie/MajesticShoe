@@ -1,3 +1,4 @@
+// src/context/CartContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../firebase";
 import {
@@ -7,6 +8,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  getDocs,
 } from "firebase/firestore";
 import { useAuth } from "./AuthContext";
 
@@ -43,7 +45,6 @@ export function CartProvider({ children }) {
     return () => unsub();
   }, [currentUser]);
 
-  // --- New Function: Update Quantity in Firestore ---
   const updateQuantity = async (itemId, newQuantity) => {
     if (!currentUser || newQuantity < 1) return;
     try {
@@ -56,7 +57,6 @@ export function CartProvider({ children }) {
     }
   };
 
-  // --- New Function: Remove Item from Firestore ---
   const removeFromCart = async (itemId) => {
     if (!currentUser) return;
     try {
@@ -67,14 +67,30 @@ export function CartProvider({ children }) {
     }
   };
 
+  // Clear all items in this user's cart
+  const clearCart = async () => {
+    if (!currentUser) return;
+    try {
+      const cartRef = collection(db, "carts", currentUser.uid, "items");
+      const snap = await getDocs(cartRef);
+      const batchDeletes = snap.docs.map((d) =>
+        deleteDoc(doc(db, "carts", currentUser.uid, "items", d.id))
+      );
+      await Promise.all(batchDeletes);
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+    }
+  };
+
   const cartCount = items.length;
 
   const value = {
     items,
     cartCount,
     loadingCart,
-    updateQuantity, // Exported to be used in Cart.jsx
-    removeFromCart, // Exported to be used in Cart.jsx
+    updateQuantity,
+    removeFromCart,
+    clearCart, // exported for Checkout.jsx
   };
 
   return (

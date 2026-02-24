@@ -1,5 +1,5 @@
 // src/Components/AdminSidebar.jsx
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
@@ -13,6 +13,7 @@ const adminLinks = [
 
 export default function AdminSidebar() {
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -23,61 +24,201 @@ export default function AdminSidebar() {
     }
   };
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
-    <aside className="hidden md:flex md:flex-col w-64 bg-[#070707] border-r border-white/10 text-white min-h-screen fixed left-0 top-0 z-40">
-      {/* Brand */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-        <div className="relative overflow-hidden rounded-lg bg-white p-1">
-          <img
-            src="/logo.jpeg"
-            alt="Majestic Shoe Palace"
-            className="h-9 w-auto object-contain"
-          />
-        </div>
-        <div className="leading-tight">
-          <div className="text-sm font-bold tracking-tighter text-white">
-            MAJESTIC
+    <>
+      {/* MOBILE TOP BAR */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between bg-[#070707] border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="relative overflow-hidden rounded-lg bg-white p-1">
+            <img
+              src="/logo.jpeg"
+              alt="Majestic Shoe Palace"
+              className="h-8 w-auto object-contain"
+            />
           </div>
-          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-red-600">
-            Admin Panel
+          <div className="leading-tight">
+            <div className="text-sm font-bold tracking-tighter text-white">
+              MAJESTIC
+            </div>
+            <div className="text-[8px] font-black uppercase tracking-[0.2em] text-red-600">
+              Admin Panel
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Menu */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {adminLinks.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              [
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-all",
-                isActive
-                  ? "bg-red-600 text-white shadow-lg shadow-red-600/30"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5",
-              ].join(" ")
-            }
-          >
-            <item.icon className="h-4 w-4" />
-            <span className="uppercase tracking-[0.18em]">
-              {item.label}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
-
-      {/* Bottom section */}
-      <div className="border-t border-white/10 px-4 py-4">
         <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300 hover:bg-red-600 hover:text-white transition-all"
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="inline-flex items-center justify-center rounded-md p-2 text-neutral-300 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-[#070707]"
         >
-          <LogoutIcon className="h-4 w-4" />
-          Logout
+          <span className="sr-only">Open admin menu</span>
+          {/* Hamburger icon */}
+          <svg
+            className="h-5 w-5"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
       </div>
-    </aside>
+
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-[#070707] border-r border-white/10 text-white min-h-screen fixed left-0 top-0 z-30">
+        {/* Brand */}
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+          <div className="relative overflow-hidden rounded-lg bg-white p-1">
+            <img
+              src="/logo.jpeg"
+              alt="Majestic Shoe Palace"
+              className="h-9 w-auto object-contain"
+            />
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-bold tracking-tighter text-white">
+              MAJESTIC
+            </div>
+            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-red-600">
+              Admin Panel
+            </div>
+          </div>
+        </div>
+
+        {/* Menu */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          {adminLinks.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                [
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-all",
+                  isActive
+                    ? "bg-red-600 text-white shadow-lg shadow-red-600/30"
+                    : "text-neutral-400 hover:text-white hover:bg-white/5",
+                ].join(" ")
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              <span className="uppercase tracking-[0.18em]">
+                {item.label}
+              </span>
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Bottom section */}
+        <div className="border-t border-white/10 px-4 py-4">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300 hover:bg-red-600 hover:text-white transition-all"
+          >
+            <LogoutIcon className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* MOBILE OVERLAY SIDEBAR */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60"
+            onClick={closeMobile}
+          />
+
+          {/* Panel */}
+          <div className="relative z-50 w-72 max-w-full bg-[#070707] border-r border-white/10 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="relative overflow-hidden rounded-lg bg-white p-1">
+                  <img
+                    src="/logo.jpeg"
+                    alt="Majestic Shoe Palace"
+                    className="h-8 w-auto object-contain"
+                  />
+                </div>
+                <div className="leading-tight">
+                  <div className="text-sm font-bold tracking-tighter text-white">
+                    MAJESTIC
+                  </div>
+                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-red-600">
+                    Admin Panel
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeMobile}
+                className="rounded-md p-2 text-neutral-300 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-[#070707]"
+              >
+                <span className="sr-only">Close menu</span>
+                {/* X icon */}
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Links */}
+            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+              {adminLinks.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    [
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-all",
+                      isActive
+                        ? "bg-red-600 text-white shadow-lg shadow-red-600/30"
+                        : "text-neutral-400 hover:text-white hover:bg-white/5",
+                    ].join(" ")
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="uppercase tracking-[0.18em]">
+                    {item.label}
+                  </span>
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Logout */}
+            <div className="border-t border-white/10 px-4 py-4">
+              <button
+                onClick={async () => {
+                  await handleLogout();
+                  closeMobile();
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300 hover:bg-red-600 hover:text-white transition-all"
+              >
+                <LogoutIcon className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -12,8 +12,6 @@ import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function Cart() {
   const {
@@ -21,7 +19,6 @@ export default function Cart() {
     loadingCart,
     updateQuantity,
     removeFromCart,
-    clearCart,
   } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +31,7 @@ export default function Cart() {
 
   const isEmpty = !loadingCart && items.length === 0;
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!currentUser) {
       alert("Please sign in to checkout.");
       navigate("/signin");
@@ -44,65 +41,7 @@ export default function Cart() {
       alert("Your cart is empty.");
       return;
     }
-
-    const ok = window.confirm(
-      "Please confirm your order details.\n\n" +
-        `Items: ${items.length}\n` +
-        `Total: Rs. ${totalAmount.toLocaleString("en-LK")}\n\n` +
-        "Proceed to place this order?"
-    );
-    if (!ok) return;
-
-    try {
-      const orderItems = items.map((item) => ({
-        shoeId: item.shoeId || item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity || 1,
-        size: item.size || null,
-        color: item.color || null,
-        image: item.image || null,
-      }));
-
-      await addDoc(collection(db, "orders"), {
-        userId: currentUser.uid,
-        userEmail: currentUser.email || null,
-        phone: null, // fill from profile if you have it
-        items: orderItems,
-        total: totalAmount,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-
-      // Optional: open WhatsApp for manual confirmation message
-      const msgLines = [
-        "New Order Request - Majestic Shoe Palace",
-        "",
-        `Customer: ${currentUser.email || currentUser.uid}`,
-        `Total: Rs. ${totalAmount.toLocaleString("en-LK")}`,
-        "",
-        "Items:",
-        ...orderItems.map(
-          (it, idx) =>
-            `${idx + 1}. ${it.name} - Rs.${it.price} x ${
-              it.quantity
-            }` +
-            `${it.size ? `, Size ${it.size}` : ""}` +
-            `${it.color ? `, ${it.color}` : ""}`
-        ),
-      ];
-      const text = encodeURIComponent(msgLines.join("\n"));
-      // 94 is Sri Lanka country code; adjust if needed
-      const whatsappUrl = `https://wa.me/94743035311?text=${text}`;
-      window.open(whatsappUrl, "_blank");
-
-      clearCart();
-      alert("Order placed successfully!");
-      navigate("/"); // or navigate("/orders");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to place order. Please try again.");
-    }
+    navigate("/checkout");
   };
 
   return (
