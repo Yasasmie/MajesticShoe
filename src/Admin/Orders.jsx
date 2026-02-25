@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import OrderSlip from "../Components/OrderSlip";
+import { formatOrderRef } from "../utils/orderId"; // shared helper [web:16]
 
 export default function Orders() {
   const [firebaseUser, setFirebaseUser] = useState(null);
@@ -74,7 +75,9 @@ export default function Orders() {
         await addDoc(collection(db, "notifications"), {
           userId: targetOrder.userId,
           orderId,
-          message: `Your order #${orderId.slice(0, 8)} status is now: ${status.toUpperCase()}.`,
+          message: `Your order ${formatOrderRef(
+            orderId
+          )} status is now: ${status.toUpperCase()}.`,
           status,
           read: false,
           createdAt: serverTimestamp(),
@@ -160,7 +163,7 @@ export default function Orders() {
                         className="group cursor-pointer hover:bg-white/[0.05] transition-all"
                       >
                         <td className="px-8 py-7 font-mono text-sm text-red-500 font-bold uppercase tracking-wider">
-                          #{order.id.slice(0, 8)}
+                          {formatOrderRef(order.id)}
                         </td>
                         <td className="px-8 py-7">
                           <p className="text-base font-medium text-white">
@@ -216,7 +219,7 @@ function OrderDetailModal({ order, onClose, updateStatus }) {
               Order Specification
             </p>
             <h2 className="text-3xl md:text-4xl font-serif italic text-white">
-              Reference #{order.id.slice(0, 12)}
+              Reference {formatOrderRef(order.id)}
             </h2>
           </div>
           <button
@@ -397,7 +400,7 @@ function OrderDetailModal({ order, onClose, updateStatus }) {
           </div>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-3 px-10 py-4 bg-white text-black rounded-full text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-xl"
+            className="flex items-center gap-3 px-10 py-4 bg.white text-black rounded-full text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-xl"
           >
             <Printer size={18} /> Print Invoice
           </button>
@@ -449,13 +452,13 @@ function DetailSection({ icon, title, children }) {
 function ActionButton({ label, onClick, active, color }) {
   const colors = {
     green: active
-      ? "bg-green-600 text-white border-green-500"
+      ? "bg-green-600 text.white border-green-500"
       : "text-green-500 bg-green-500/10 border-green-500/20 hover:bg-green-500/20",
     red: active
-      ? "bg-red-600 text-white border-red-500"
+      ? "bg-red-600 text.white border-red-500"
       : "text-red-500 bg-red-500/10 border-red-500/20 hover:bg-red-500/20",
     yellow: active
-      ? "bg-yellow-500 text-black border-yellow-400"
+      ? "bg-yellow-500 text.black border-yellow-400"
       : "text-yellow-500 bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20",
   };
   return (
@@ -489,11 +492,7 @@ const UnauthorizedNotice = () => (
 
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center py-32 border border-dashed border-white/10 rounded-[48px]">
-    <PackageSearch
-      size={64}
-      strokeWidth={1}
-      className="text-neutral-800 mb-6"
-    />
+    <PackageSearch size={64} strokeWidth={1} className="text-neutral-800 mb-6" />
     <p className="text-xl text-neutral-500 font-serif italic">
       Archive is currently empty
     </p>
