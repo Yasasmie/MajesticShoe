@@ -1,7 +1,7 @@
 // src/Pages/Checkout.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2"; // Ensure you run: npm install sweetalert2
+import Swal from "sweetalert2";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { useCart } from "../context/CartContext";
@@ -20,7 +20,6 @@ export default function Checkout() {
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
-  const [nicNumber, setNicNumber] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -47,7 +46,7 @@ export default function Checkout() {
     e.preventDefault();
 
     if (!currentUser || !items || items.length === 0) return;
-    if (!fullName || !address || !phone || !nicNumber) return;
+    if (!fullName || !address || !phone) return;
 
     try {
       setSubmitting(true);
@@ -70,7 +69,6 @@ export default function Checkout() {
         status: "pending",
         createdAt: serverTimestamp(),
         fullName,
-        nicNumber,
         address,
         phone,
         whatsapp,
@@ -113,29 +111,25 @@ export default function Checkout() {
         tx.set(orderRef, payload);
       });
 
-      // Clear the cart first
       await clearCart();
 
-      // SUCCESS POPUP: Thanking the customer
       await Swal.fire({
         title: "Order Placed Successfully!",
         text: `Thank you, ${fullName}! Your order has been received and is being processed.`,
         icon: "success",
         background: "#0A0A0A",
         color: "#fff",
-        confirmButtonColor: "#dc2626", // red-600
+        confirmButtonColor: "#dc2626",
         confirmButtonText: "View My Orders",
         timer: 4000,
         timerProgressBar: true,
       });
 
-      // Redirect to profile with success query to trigger the profile banner
       navigate("/profile?order=success");
-
     } catch (err) {
       console.error("Order create error:", err);
       setSubmitting(false);
-      
+
       Swal.fire({
         title: "Order Failed",
         text: err.message || "Something went wrong while placing your order.",
@@ -150,7 +144,9 @@ export default function Checkout() {
   if (!currentUser || loadingCart || !items) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-        <p className="text-neutral-400 text-sm animate-pulse">Preparing checkout...</p>
+        <p className="text-neutral-400 text-sm animate-pulse">
+          Preparing checkout...
+        </p>
       </div>
     );
   }
@@ -188,18 +184,6 @@ export default function Checkout() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-600 transition-colors"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs uppercase tracking-[0.2em] text-neutral-400 mb-1">
-                  NIC Number *
-                </label>
-                <input
-                  type="text"
-                  value={nicNumber}
-                  onChange={(e) => setNicNumber(e.target.value)}
                   className="w-full bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-600 transition-colors"
                   required
                 />
