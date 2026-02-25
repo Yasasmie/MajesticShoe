@@ -15,7 +15,15 @@ import {
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 
-const HERO_IMAGES = ["/home.jpeg", "/home2.jpeg", "/home3.jpeg", "/home4.jpeg"];
+const HERO_IMAGES = [
+  "/home1.jpeg",
+  "/home2.jpeg",
+  "/home3.jpeg",
+  "/home4.jpeg",
+  "/home5.jpeg",
+  "/home6.jpeg",
+  "/home7.jpeg",
+];
 
 const SERVICES = [
   {
@@ -132,8 +140,9 @@ export default function Home() {
         </section>
 
         <section className="mt-20 lg:mt-0 flex-1 relative">
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-md">
-            <div className="h-full w-full overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0A]">
+          {/* enlarged hero image container */}
+          <div className="relative mx-auto w-full max-w-3xl h-[480px] md:h-[640px]">
+            <div className="relative h-full w-full overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0A]">
               {HERO_IMAGES.map((img, index) => (
                 <div
                   key={index}
