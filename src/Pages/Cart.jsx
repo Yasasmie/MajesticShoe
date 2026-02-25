@@ -22,13 +22,12 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (!currentUser) {
-      // Use a gentle inline message or toast in your layout instead of alert()
-      window.alert("Please sign in to checkout.");
+      // just redirect, no popup
       navigate("/signin");
       return;
     }
     if (items.length === 0) {
-      window.alert("Your cart is empty.");
+      // do nothing if cart is empty
       return;
     }
     navigate("/checkout");
@@ -74,7 +73,7 @@ export default function Cart() {
             <div className="lg:col-span-8 space-y-4">
               {items.map((item) => {
                 const itemQty = item.quantity || 1;
-                const itemSubtotal = Number(item.price || 0) * itemQty;
+                const itemSubtotal = (Number(item.price) || 0) * itemQty;
 
                 return (
                   <div

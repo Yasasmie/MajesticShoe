@@ -46,17 +46,15 @@ export default function Checkout() {
     e.preventDefault();
 
     if (!currentUser) {
-      window.alert("Please sign in to checkout.");
       navigate("/signin");
       return;
     }
     if (!items || items.length === 0) {
-      window.alert("Your cart is empty.");
       navigate("/cart");
       return;
     }
     if (!fullName || !address || !phone || !nicNumber) {
-      window.alert("Please fill all required fields before placing your order.");
+      // keep HTML5 required + silent guard
       return;
     }
 
@@ -129,15 +127,11 @@ export default function Checkout() {
       });
 
       await clearCart();
-      // On mobile, keep this short and positive; or use a success toast on the next page.
-      window.alert("Order placed successfully!");
+      // no success popup; just redirect
       navigate("/");
     } catch (err) {
       console.error("Order create error:", err);
-      window.alert(
-        err?.message ||
-          "Failed to place order. Please verify stock and your details, then try again."
-      );
+      // if there is an error, stop submitting state but no alert popup
       setSubmitting(false);
     }
   };
