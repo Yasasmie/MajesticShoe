@@ -46,17 +46,17 @@ export default function Checkout() {
     e.preventDefault();
 
     if (!currentUser) {
-      alert("Please sign in to checkout.");
+      window.alert("Please sign in to checkout.");
       navigate("/signin");
       return;
     }
     if (!items || items.length === 0) {
-      alert("Your cart is empty.");
+      window.alert("Your cart is empty.");
       navigate("/cart");
       return;
     }
     if (!fullName || !address || !phone || !nicNumber) {
-      alert("Please fill all required fields.");
+      window.alert("Please fill all required fields before placing your order.");
       return;
     }
 
@@ -89,14 +89,13 @@ export default function Checkout() {
       };
 
       await runTransaction(db, async (tx) => {
-        // 1. READS: collect all stock checks first
         const stockUpdates = [];
 
         for (const item of orderItems) {
           if (!item.shoeId) continue;
 
           const shoeRef = doc(db, "shoes", item.shoeId);
-          const shoeSnap = await tx.get(shoeRef); // read only
+          const shoeSnap = await tx.get(shoeRef);
 
           if (!shoeSnap.exists()) {
             throw new Error(
@@ -120,25 +119,24 @@ export default function Checkout() {
           });
         }
 
-        // 2. WRITES: apply stock updates
         for (const upd of stockUpdates) {
           tx.update(upd.ref, { stock: upd.newStock });
         }
 
-        // 3. WRITES: create order document with auto ID
         const ordersRef = collection(db, "orders");
         const orderRef = doc(ordersRef);
         tx.set(orderRef, payload);
       });
 
       await clearCart();
-      alert("Order placed successfully!");
+      // On mobile, keep this short and positive; or use a success toast on the next page.
+      window.alert("Order placed successfully!");
       navigate("/");
     } catch (err) {
       console.error("Order create error:", err);
-      alert(
+      window.alert(
         err?.message ||
-          "Failed to place order. Please verify stock and try again."
+          "Failed to place order. Please verify stock and your details, then try again."
       );
       setSubmitting(false);
     }
@@ -277,7 +275,7 @@ export default function Checkout() {
                 className={`flex-1 px-4 py-3 rounded-2xl border text-xs font-black uppercase tracking-[0.2em] ${
                   paymentMethod === "bank"
                     ? "bg-red-600 border-red-600 text-white"
-                    : "bg-[#111] border-white/10 text-neutral-300 hover:bg:white/5"
+                    : "bg-[#111] border-white/10 text-neutral-300 hover:bg-white/5"
                 }`}
               >
                 Bank Transfer

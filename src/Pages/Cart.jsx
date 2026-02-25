@@ -1,25 +1,14 @@
 // src/Pages/Cart.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Trash2,
-  ShoppingBag,
-  Plus,
-  Minus,
-  ArrowRight,
-} from "lucide-react";
+import { Trash2, ShoppingBag, Plus, Minus, ArrowRight } from "lucide-react";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
 export default function Cart() {
-  const {
-    items,
-    loadingCart,
-    updateQuantity,
-    removeFromCart,
-  } = useCart();
+  const { items, loadingCart, updateQuantity, removeFromCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -33,12 +22,13 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (!currentUser) {
-      alert("Please sign in to checkout.");
+      // Use a gentle inline message or toast in your layout instead of alert()
+      window.alert("Please sign in to checkout.");
       navigate("/signin");
       return;
     }
     if (items.length === 0) {
-      alert("Your cart is empty.");
+      window.alert("Your cart is empty.");
       return;
     }
     navigate("/checkout");
@@ -84,7 +74,7 @@ export default function Cart() {
             <div className="lg:col-span-8 space-y-4">
               {items.map((item) => {
                 const itemQty = item.quantity || 1;
-                const itemSubtotal = Number(item.price) * itemQty;
+                const itemSubtotal = Number(item.price || 0) * itemQty;
 
                 return (
                   <div
@@ -103,9 +93,7 @@ export default function Cart() {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="text-[10px] uppercase tracking-widest text-red-500 font-bold mb-1">
-                            {item.size
-                              ? `Size ${item.size}`
-                              : "Standard"}{" "}
+                            {item.size ? `Size ${item.size}` : "Standard"}{" "}
                             {item.color ? `• ${item.color}` : ""}
                           </p>
                           <h2 className="text-xl font-medium tracking-tight uppercase group-hover:text-red-500 transition-colors">
