@@ -7,6 +7,43 @@ import Footer from "../Components/Footer";
 export default function About() {
   const navigate = useNavigate();
 
+  const bilingualStory = {
+    sinhala: {
+      badge: "අපගේ කතාව",
+      heading:
+        "කෑගලු දිස්ත්‍රික්කයේ කල් පවතින ඉස්තරම් පාවහන් නාමය නම් මැජෙස්ටික් නාමයයි",
+      paragraphs: [
+        "අතිනවීන උපකරණ, දිගුකාලීන අත්දැකීම් සහ ගුණාත්මක නිමාව සමඟ 1966 සිට මැජෙස්ටික් ෂූ සෙන්ටර් කෑගල්ලේ විශ්වාසය දිනාගත් පාවහන් නිෂ්පාදන ආයතනයකි.",
+        "ස්වභාවික සම්, කෘතිම ද්‍රව්‍ය සහ වෙනත් උසස් අමුද්‍රව්‍ය යොදා ගනිමින් දෛනික භාවිතය, විශේෂ අවස්ථා සහ අභිරුචි අවශ්‍යතා සඳහා විවිධ පාවහන් නිෂ්පාදනය කරයි.",
+        "පාදයේ වේදනා, දියවැඩියා තත්ත්වයන්, ආබාධිත අවශ්‍යතා සහ විශේෂ මිනුම් සඳහා ගැළපෙන අභිරුචි පාවහන් නිර්මාණය කිරීමද අපගේ විශේෂත්වයකි.",
+      ],
+      contactTitle: "සම්බන්ධ වීමට",
+      contact: [
+        "මැජෙස්ටික් ෂූ සෙන්ටර්",
+        "අංක 197, කොළඹ වීදිය, කෑගල්ල",
+        "Hot Line - 077-3745260",
+        "Whatsapp - 076-3594490",
+      ],
+    },
+    english: {
+      badge: "Our Legacy",
+      heading:
+        "Majestic is a trusted name for durable, high-quality footwear in the Kegalle district.",
+      paragraphs: [
+        "Since 1966, Majestic Shoe Center has earned customer trust in Kegalle through modern equipment, decades of hands-on experience, and reliable craftsmanship.",
+        "We produce a wide range of footwear using genuine leather, synthetic materials, and other carefully selected components for everyday wear, special occasions, and custom requirements.",
+        "Our workshop also creates custom footwear solutions for foot pain, diabetic needs, mobility-related conditions, and made-to-measure comfort requirements.",
+      ],
+      contactTitle: "Contact Details",
+      contact: [
+        "Majestic Shoe Center",
+        "No. 197, Colombo Street, Kegalle",
+        "Hot Line - 077-3745260",
+        "WhatsApp - 076-3594490",
+      ],
+    },
+  };
+
   const handleDirections = () => {
     navigate("/map");
   };
@@ -29,7 +66,7 @@ export default function About() {
             <p className="mt-8 text-lg text-slate-400 leading-relaxed">
               Located at{" "}
               <span className="text-white border-b border-red-500/50">
-                197, Main Street, Kegalle
+                197, Colombo Street, Kegalle
               </span>
               , Majestic Shoe Center is more than a retail space. It is an
               artisan-led workshop dedicated to creating uncommon footwear that
@@ -43,6 +80,28 @@ export default function About() {
               alt="Artisan at work"
               className="relative rounded-xl shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 px-6 bg-[#11141a] border-y border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="max-w-3xl mb-14">
+            <p className="text-red-500 uppercase tracking-[0.35em] text-xs font-black">
+              Bilingual Story
+            </p>
+            <h2 className="mt-4 text-4xl md:text-5xl font-serif text-white">
+              About Majestic Shoe Center
+            </h2>
+            <p className="mt-4 text-slate-400 leading-relaxed">
+              The original story is now available in Sinhala and English so
+              every visitor can read the background of our workshop clearly.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <LanguageCard content={bilingualStory.sinhala} />
+            <LanguageCard content={bilingualStory.english} />
           </div>
         </div>
       </section>
@@ -183,7 +242,7 @@ export default function About() {
             Visit Our Workshop
           </h2>
           <p className="font-medium mb-8">
-            197, Main Street, Kegalle. <br />
+            197, Colombo Street, Kegalle. <br />
             Walk-ins are welcome to browse our leather swatches and try on
             samples.
           </p>
@@ -210,6 +269,36 @@ function SpecialtyCard({ title, text }) {
       </h3>
       <p className="text-sm text-slate-500 leading-relaxed">{text}</p>
     </div>
+  );
+}
+
+function LanguageCard({ content }) {
+  return (
+    <article className="h-full rounded-3xl border border-white/10 bg-[#0b0d11] p-8 md:p-10 shadow-2xl shadow-black/20">
+      <p className="text-xs font-black uppercase tracking-[0.28em] text-red-500">
+        {content.badge}
+      </p>
+      <h3 className="mt-4 text-2xl md:text-3xl font-serif text-white leading-relaxed">
+        {content.heading}
+      </h3>
+
+      <div className="mt-8 space-y-5 text-slate-300 leading-8">
+        {content.paragraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-red-500/10 bg-red-500/[0.04] p-6">
+        <h4 className="text-sm font-black uppercase tracking-[0.22em] text-white">
+          {content.contactTitle}
+        </h4>
+        <div className="mt-4 space-y-2 text-slate-300">
+          {content.contact.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
